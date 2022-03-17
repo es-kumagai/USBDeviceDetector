@@ -8,6 +8,8 @@
 import Foundation
 import IOKit
 
+public typealias USBDevices = [USBDevice]
+
 public final class USBDevice : NSObject {
     
     public let object: IOObject

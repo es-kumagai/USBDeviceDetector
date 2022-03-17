@@ -8,6 +8,7 @@
 import Foundation
 import IOKit
 import IOKit.usb
+import Ocean
 
 public final class USBDeviceDetector : NSObject {
     
@@ -15,7 +16,6 @@ public final class USBDeviceDetector : NSObject {
     
     private var notificationPort: IONotificationPortRef
     private var notificationPortRunLoop: CFRunLoopSource
-    private var notificationPortIterators: [(IOIterator, selector: Selector)]
 
     private let matchesUSBDevice = IOServiceMatching(kIOUSBDeviceClassName)
     private var notificationHandlers = [NotificationHandler]()
@@ -25,22 +25,43 @@ public final class USBDeviceDetector : NSObject {
         notificationPort = IONotificationPortCreate(kIOMainPortDefault)
         notificationPortRunLoop = IONotificationPortGetRunLoopSource(notificationPort).takeRetainedValue()
         
-        notificationPortIterators = [
-            (IOIterator(type: kIOPublishNotification), #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidAdd:))),
-            (IOIterator(type: kIOTerminatedNotification), #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidRemove:))),
-        ]
-
         super.init()
 
         CFRunLoopAddSource(CFRunLoopGetCurrent(), notificationPortRunLoop, .defaultMode)
 
-        for (iterator, selector) in notificationPortIterators {
+        struct NotificationPort {
+        
+            var iteratorType: String
+            var delegationSelector: Selector
+            var makeNotification: (USBDevices) -> NotificationProtocol
             
-            try! addNotification(iterator) { [unowned self] in
+            func makeIOIterator() -> IOIterator {
+                
+                IOIterator(type: iteratorType)
+            }
+        }
+        
+        let observingNotificationPorts = [
+            
+            NotificationPort(iteratorType: kIOPublishNotification, delegationSelector: #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidAdd:))) { [unowned self] in
+                
+                DevicesDidAddNotification(detector: self, devices: $0)
+            },
+            NotificationPort(iteratorType: kIOTerminatedNotification, delegationSelector: #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidRemove:))) { [unowned self] in
+
+                DevicesDidRemoveNotification(detector: self, devices: $0)
+            }
+        ]
+
+
+        for notificationPort in observingNotificationPorts {
+            
+            try! addNotification(notificationPort.makeIOIterator()) { [unowned self] in
                 
                 let devices = USBDeviceSequence(rawIterator: $0).devices
                 
-                delegate?.perform(selector, with: self, with: devices)
+                delegate?.perform(notificationPort.delegationSelector, with: self, with: devices)
+                notificationPort.makeNotification(devices).post()
             }
         }
     }

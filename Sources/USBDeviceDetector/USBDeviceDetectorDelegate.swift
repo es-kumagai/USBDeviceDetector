@@ -9,9 +9,9 @@ import Foundation
 
 @objc public protocol USBDeviceDetectorDelegate : NSObjectProtocol {
 
-    @objc optional func usbDeviceDetector(_ detector: USBDeviceDetector, currentDevicesDetected devices: [USBDevice])
+    @objc optional func usbDeviceDetector(_ detector: USBDeviceDetector, currentDevicesDetected devices: USBDevices)
     
-    @objc optional func usbDeviceDetector(_ detector: USBDeviceDetector, devicesDidAdd devices: [USBDevice])
+    @objc optional func usbDeviceDetector(_ detector: USBDeviceDetector, devicesDidAdd devices: USBDevices)
     
-    @objc optional func usbDeviceDetector(_ detector: USBDeviceDetector, devicesDidRemove devices: [USBDevice])
+    @objc optional func usbDeviceDetector(_ detector: USBDeviceDetector, devicesDidRemove devices: USBDevices)
 }
