@@ -19,49 +19,39 @@ public final class USBDeviceDetector : NSObject {
 
     private let matchesUSBDevice = IOServiceMatching(kIOUSBDeviceClassName)
     private var notificationHandlers = [NotificationHandler]()
+    private var observingNotificationPorts: [ObservingNotificationPort]
     
     public override init() {
         
         notificationPort = IONotificationPortCreate(kIOMainPortDefault)
         notificationPortRunLoop = IONotificationPortGetRunLoopSource(notificationPort).takeRetainedValue()
+        observingNotificationPorts = [
+
+            ObservingNotificationPort(
+                iteratorType: kIOPublishNotification,
+                delegationSelector: #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidAdd:)),
+                makeNotification: DevicesDidAddNotification.init
+            ),
+            
+            ObservingNotificationPort(
+                iteratorType: kIOTerminatedNotification,
+                delegationSelector: #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidRemove:)),
+                makeNotification: DevicesDidRemoveNotification.init
+            )
+        ]
         
         super.init()
 
         CFRunLoopAddSource(CFRunLoopGetCurrent(), notificationPortRunLoop, .defaultMode)
-
-        struct NotificationPort {
         
-            var iteratorType: String
-            var delegationSelector: Selector
-            var makeNotification: (USBDevices) -> NotificationProtocol
+        for observingNotificationPort in observingNotificationPorts {
             
-            func makeIOIterator() -> IOIterator {
-                
-                IOIterator(type: iteratorType)
-            }
-        }
-        
-        let observingNotificationPorts = [
-            
-            NotificationPort(iteratorType: kIOPublishNotification, delegationSelector: #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidAdd:))) { [unowned self] in
-                
-                DevicesDidAddNotification(detector: self, devices: $0)
-            },
-            NotificationPort(iteratorType: kIOTerminatedNotification, delegationSelector: #selector(USBDeviceDetectorDelegate.usbDeviceDetector(_:devicesDidRemove:))) { [unowned self] in
-
-                DevicesDidRemoveNotification(detector: self, devices: $0)
-            }
-        ]
-
-
-        for notificationPort in observingNotificationPorts {
-            
-            try! addNotification(notificationPort.makeIOIterator()) { [unowned self] in
+            try! addNotification(observingNotificationPort.iterator) { [unowned self] in
                 
                 let devices = USBDeviceSequence(rawIterator: $0).devices
                 
-                delegate?.perform(notificationPort.delegationSelector, with: self, with: devices)
-                notificationPort.makeNotification(devices).post()
+                delegate?.perform(observingNotificationPort.delegationSelector, with: self, with: devices)
+                observingNotificationPort.makeNotification(self, devices).post()
             }
         }
     }
@@ -75,32 +65,50 @@ public final class USBDeviceDetector : NSObject {
     }
 }
 
-private class NotificationHandler {
+private extension USBDeviceDetector {
 
-    typealias Callback = (_ iterator: IOIterator) -> Void
+    struct ObservingNotificationPort {
     
-    private let type: String
-    private let callback: Callback
-    
-    init(type: String, callback: @escaping Callback) {
-        
-        self.type = type
-        self.callback = callback
+        var iterator: IOIterator
+        var delegationSelector: Selector
+        var makeNotification: (USBDeviceDetector, USBDevices) -> NotificationProtocol
     }
     
-    func invoke(_ iterator: io_iterator_t) {
+    class NotificationHandler {
+
+        typealias Callback = (_ iterator: IOIterator) -> Void
         
-        callback(IOIterator(type: type, iterator: iterator))
+        let type: String
+        let callback: Callback
+        
+        init(type: String, callback: @escaping Callback) {
+            
+            self.type = type
+            self.callback = callback
+        }
+        
+        func invoke(_ iterator: io_iterator_t) {
+            
+            callback(IOIterator(type: type, iterator: iterator))
+        }
+        
+        func toOpaque() -> UnsafeMutableRawPointer {
+            
+            Unmanaged.passUnretained(self).toOpaque()
+        }
+        
+        static func from(_ pointer: UnsafeRawPointer) -> NotificationHandler {
+            
+            Unmanaged.fromOpaque(pointer).takeUnretainedValue()
+        }
     }
+}
+
+extension USBDeviceDetector.ObservingNotificationPort {
     
-    func toOpaque() -> UnsafeMutableRawPointer {
+    init(iteratorType: String, delegationSelector: Selector, makeNotification: @escaping (USBDeviceDetector, USBDevices) -> NotificationProtocol) {
         
-        Unmanaged.passUnretained(self).toOpaque()
-    }
-    
-    static func from(_ pointer: UnsafeRawPointer) -> NotificationHandler {
-        
-        Unmanaged.fromOpaque(pointer).takeUnretainedValue()
+        self.init(iterator: IOIterator(type: iteratorType), delegationSelector: delegationSelector, makeNotification: makeNotification)
     }
 }
 
