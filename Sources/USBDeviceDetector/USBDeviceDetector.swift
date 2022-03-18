@@ -12,7 +12,7 @@ import Ocean
 
 public final class USBDeviceDetector : NSObject {
     
-    public weak var delegate: USBDeviceDetectorDelegate?
+    @IBOutlet public weak var delegate: USBDeviceDetectorDelegate?
     
     private var notificationPort: IONotificationPortRef
     private var notificationPortRunLoop: CFRunLoopSource
