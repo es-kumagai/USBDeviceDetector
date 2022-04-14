@@ -37,6 +37,14 @@ public final class USBDevice : NSObject {
     }
 }
 
+public extension USBDevice {
+    
+    override var debugDescription: String {
+        
+        "\(name) \(super.debugDescription)"
+    }
+}
+
 public extension Sequence where Element == USBDevice {
     
     func contains(name: String) -> Bool {
