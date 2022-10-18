@@ -22,7 +22,7 @@ public final class USBDeviceDetector : NSObject {
     private var notificationHandlers = [NotificationHandler]()
     private var observingNotificationPorts: [ObservingNotificationPort]
         
-    public init(notificationCenter: NotificationCenter) {
+    public init(notificationCenter: NotificationCenter = .default) {
         
         self.notificationCenter = notificationCenter
         
