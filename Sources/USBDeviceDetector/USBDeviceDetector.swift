@@ -13,15 +13,18 @@ import Ocean
 public final class USBDeviceDetector : NSObject {
     
     @IBOutlet public weak var delegate: USBDeviceDetectorDelegate?
-    
+
+    private var notificationCenter: NotificationCenter
     private var notificationPort: IONotificationPortRef
     private var notificationPortRunLoop: CFRunLoopSource
 
     private let matchesUSBDevice = IOServiceMatching(kIOUSBDeviceClassName)
     private var notificationHandlers = [NotificationHandler]()
     private var observingNotificationPorts: [ObservingNotificationPort]
-    
-    public override init() {
+        
+    public init(notificationCenter: NotificationCenter) {
+        
+        self.notificationCenter = notificationCenter
         
         notificationPort = IONotificationPortCreate(kIOMainPortDefault)
         notificationPortRunLoop = IONotificationPortGetRunLoopSource(notificationPort).takeRetainedValue()
@@ -51,7 +54,7 @@ public final class USBDeviceDetector : NSObject {
                 let devices = USBDeviceSequence(rawIterator: $0).devices
                 
                 delegate?.perform(observingNotificationPort.delegationSelector, with: self, with: devices)
-                observingNotificationPort.makeNotification(self, devices).post()
+                observingNotificationPort.makeNotification(self, devices).post(to: notificationCenter)
             }
         }
     }

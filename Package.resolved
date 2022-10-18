@@ -3,10 +3,10 @@
     {
       "identity" : "ocean",
       "kind" : "remoteSourceControl",
-      "location" : "git@github.com:es-kumagai/Ocean.git",
+      "location" : "https://github.com/es-kumagai/Ocean.git",
       "state" : {
         "branch" : "master",
-        "revision" : "1a925981bf4cdc4f95e5718875f7faa7557bf012"
+        "revision" : "a073d46aae885052af523cafffaea306a3b7a0e9"
       }
     },
     {
@@ -15,7 +15,7 @@
       "location" : "https://github.com/es-kumagai/Swim",
       "state" : {
         "branch" : "master",
-        "revision" : "c9cac424b37375426cf8b50e8b2dc4116bd0c797"
+        "revision" : "c5c91c9b998bd2c99e946f8e02cabe77916c213e"
       }
     }
   ],
