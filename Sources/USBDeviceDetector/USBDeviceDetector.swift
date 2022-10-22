@@ -10,6 +10,7 @@ import IOKit
 import IOKit.usb
 import Ocean
 
+@objcMembers
 public final class USBDeviceDetector : NSObject {
     
     @IBOutlet public weak var delegate: USBDeviceDetectorDelegate?
