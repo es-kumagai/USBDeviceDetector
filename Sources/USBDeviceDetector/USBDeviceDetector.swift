@@ -21,8 +21,13 @@ public final class USBDeviceDetector : NSObject {
     private let matchesUSBDevice = IOServiceMatching(kIOUSBDeviceClassName)
     private var notificationHandlers = [NotificationHandler]()
     private var observingNotificationPorts: [ObservingNotificationPort]
-        
-    public init(notificationCenter: NotificationCenter = .default) {
+    
+    public convenience override init() {
+    
+        self.init(notificationCenter: .default)
+    }
+    
+    public init(notificationCenter: NotificationCenter) {
         
         self.notificationCenter = notificationCenter
         
